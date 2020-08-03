@@ -17,7 +17,7 @@ import Network.HTTP.Req
     , (/:), (=:)
     )
 
-geocode :: String -> String -> Bool -> IO (Maybe [(Double, Double, Double)])
+geocode :: String -> String -> Bool -> IO (Maybe [(Double, Double, String, Double)])
 geocode addr token perm = do
     let rq = req GET
                  ( https "api.mapbox.com" /: "geocoding"
@@ -33,7 +33,7 @@ geocode addr token perm = do
         Nothing -> pure Nothing
         Just (Output cs) -> pure $ Just cs
 
-newtype Output = Output [(Double, Double, Double)]
+newtype Output = Output [(Double, Double, String, Double)]
     deriving Show
 
 data Geometry = Geometry { gtype :: String, coords :: [Double] }
@@ -51,8 +51,9 @@ instance FromJSON Output where
         rs <- o .: "features"
         cs <- for rs $ \r -> do
             rel <- r .: "relevance"
+            pn <- r .: "place_name"
             g <- r .: "geometry"
             case (gtype g, coords g) of
-                ("Point", [x, y]) -> pure $ Just (x, y, rel)
+                ("Point", [x, y]) -> pure $ Just (x, y, pn, rel)
                 _ -> pure Nothing
         pure . Output $ catMaybes cs
