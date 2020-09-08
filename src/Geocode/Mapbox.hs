@@ -45,8 +45,8 @@ data Location = Location
     { lCoordinates :: (Double, Double) --(lon, lat)
     , lStreetAddress :: String
     , lCity :: String
-    , lZipCode :: String
     , lState :: String
+    , lZipCode :: String
     , lRelevance :: Double
     } deriving Show
 
@@ -91,9 +91,9 @@ instance FromJSON Output where
             case (gtype g, coords g) of
                 ("Point", [x, y]) -> pure . Just $ Location (x, y)
                                                             (maybe "" (\ad' -> ad' ++ " ") ad ++ str)
-                                                            (fromMaybe "" zc)
                                                             (fromMaybe "" ct)
                                                             (fromMaybe "" st)
+                                                            (fromMaybe "" zc)
                                                             rel
                 _ -> pure Nothing
         pure . Output $ catMaybes cs
