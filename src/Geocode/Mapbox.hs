@@ -7,36 +7,24 @@ import Prelude hiding (id, zip)
 import Data.Aeson (FromJSON, Value(Object), parseJSON, withObject, (.:), (.:?))
 import Data.Aeson.Types (typeMismatch)
 import Data.Bool (bool)
-import Data.Default (def)
+import qualified Data.ByteString.Char8 as BC
 import Data.List (find)
-import Data.Maybe (fromMaybe)
-import qualified Data.Text as T
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.Traversable (for)
-import Data.Witherable (catMaybes)
-import Network.HTTP.Req
-    ( GET(GET), NoReqBody(NoReqBody)
-    , header, https, jsonResponse, req, responseBody, runReq
-    , (/:), (=:)
-    )
+import Network.HTTP.Client (responseBody)
+import Network.HTTP.Simple (httpJSON, parseRequest, setRequestHeaders)
 
 geocode :: String -> String -> Bool -> IO (Maybe [Location])
 geocode addr token perm = do
-    let rq = req GET
-                 ( https "api.mapbox.com" /: "geocoding"
-                                          /: "v5"
-                                          /: (bool "mapbox.places" "mapbox.places-permanent" perm)
-                                          /: (T.pack addr <> ".json")
-                 )
-                 NoReqBody
-                 jsonResponse
-                 (header "Accept" "application/vnd.geo+json" <> ("access_token" =: token)
-                                                             <> ("country" =: ("US" :: String))
-                                                             <> ("types" =: ("address" :: String))
-                 )
-    mo <- responseBody <$> runReq def rq
-    case mo of
-        Nothing -> pure Nothing
-        Just (Output cs) -> pure $ Just cs
+    req <- parseRequest $ "https://api.mapbox.com/geocoding/v5/mapbox.places"
+                       <> bool "" "-permanent" perm <> "/" <> addr <> ".json"
+    rsp <- httpJSON $ setRequestHeaders
+                    [ ("Accept", "applciation/vnd.geo+json")
+                    , ("access_token", BC.pack token)
+                    , ("country", "US")
+                    , ("types", "address")
+                    ] req
+    pure $ (\(Output o) -> o) <$> responseBody rsp
 
 newtype Output = Output [Location]
     deriving Show
