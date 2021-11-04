@@ -1,4 +1,5 @@
-{-# LANGUAGE DataKinds, FlexibleInstances, GeneralizedNewtypeDeriving, MultiParamTypeClasses, OverloadedStrings, TypeApplications, TypeOperators #-}
+{-# LANGUAGE DataKinds, FlexibleInstances, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings, TypeApplications, TypeOperators #-}
 
 module Geocode.Mapbox (Location(..), geocode) where
 
