@@ -12,18 +12,19 @@ import Data.List (find)
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Traversable (for)
 import Network.HTTP.Client (responseBody)
-import Network.HTTP.Simple (httpJSON, parseRequest, setRequestHeaders)
+import Network.HTTP.Simple (httpJSON, parseRequest, setRequestHeaders, setRequestQueryString)
 
 geocode :: String -> String -> Bool -> IO (Maybe [Location])
 geocode addr token perm = do
     req <- parseRequest $ "https://api.mapbox.com/geocoding/v5/mapbox.places"
                        <> bool "" "-permanent" perm <> "/" <> addr <> ".json"
-    rsp <- httpJSON $ setRequestHeaders
-                    [ ("Accept", "applciation/vnd.geo+json")
-                    , ("access_token", BC.pack token)
-                    , ("country", "US")
-                    , ("types", "address")
-                    ] req
+    rsp <- httpJSON . setRequestHeaders
+                  [ ("Accept", "applciation/vnd.geo+json")
+                  ] $ setRequestQueryString
+                  [ ("access_token", Just $ BC.pack token)
+                  , ("country", Just "US")
+                  , ("types", Just "address")
+                  ] req
     pure $ (\(Output o) -> o) <$> responseBody rsp
 
 newtype Output = Output [Location]
