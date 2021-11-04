@@ -4,28 +4,29 @@ module Geocode.Mapbox (Location(..), geocode) where
 
 import Prelude hiding (id, zip)
 
-import Data.Aeson (FromJSON, Value(Object), parseJSON, withObject, (.:), (.:?))
+import Data.Aeson (FromJSON, Value(Object), decode, parseJSON, withObject, (.:), (.:?))
 import Data.Aeson.Types (typeMismatch)
 import Data.Bool (bool)
 import qualified Data.ByteString.Char8 as BC
+import Data.Foldable (fold)
 import Data.List (find)
 import Data.Maybe (catMaybes, fromMaybe)
 import Data.Traversable (for)
 import Network.HTTP.Client (responseBody)
-import Network.HTTP.Simple (httpJSON, parseRequest, setRequestHeaders, setRequestQueryString)
+import Network.HTTP.Simple (httpLBS, parseRequest, setRequestHeaders, setRequestQueryString)
 
 geocode :: String -> String -> Bool -> IO (Maybe [Location])
 geocode addr token perm = do
     req <- parseRequest $ "https://api.mapbox.com/geocoding/v5/mapbox.places"
                        <> bool "" "-permanent" perm <> "/" <> addr <> ".json"
-    rsp <- httpJSON . setRequestHeaders
+    rsp <- httpLBS . setRequestHeaders
                   [ ("Accept", "applciation/vnd.geo+json")
                   ] $ setRequestQueryString
                   [ ("access_token", Just $ BC.pack token)
                   , ("country", Just "US")
                   , ("types", Just "address")
                   ] req
-    pure $ (\(Output o) -> o) <$> responseBody rsp
+    pure . fold $ fmap (\(Output o) -> o) <$> decode (responseBody rsp)
 
 newtype Output = Output [Location]
     deriving Show
