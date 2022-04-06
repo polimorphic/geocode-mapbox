@@ -1,5 +1,4 @@
-{-# LANGUAGE DataKinds, FlexibleInstances, GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings, TypeApplications, TypeOperators #-}
+{-# LANGUAGE DataKinds, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings #-}
 
 module Geocode.Mapbox (Location(..), geocode) where
 
@@ -16,18 +15,21 @@ import Data.Traversable (for)
 import Network.HTTP.Client (responseBody)
 import Network.HTTP.Simple (httpLBS, parseRequest, setRequestHeaders, setRequestQueryString)
 
-geocode :: String -> String -> Bool -> IO (Maybe [Location])
-geocode addr token perm = do
+geocode :: String -> String -> Bool -> Maybe (Double, Double) -> IO (Maybe [Location])
+geocode addr token perm mloc = do
     req <- parseRequest $ "https://api.mapbox.com/geocoding/v5/mapbox.places"
                        <> bool "" "-permanent" perm <> "/" <> addr <> ".json"
     rsp <- httpLBS . setRequestHeaders
                   [ ("Accept", "applciation/vnd.geo+json")
-                  ] $ setRequestQueryString
-                  [ ("access_token", Just $ BC.pack token)
-                  , ("country", Just "US")
-                  , ("types", Just "address")
-                  ] req
+                  ] $ setRequestQueryString qstr req
     pure . fold $ fmap (\(Output o) -> o) <$> decode (responseBody rsp)
+  where
+    qstr =
+        [ ("access_token", Just $ BC.pack token)
+        , ("country", Just "US")
+        , ("types", Just "address")
+        ] <> fold prox
+    prox = (\(lon, lat) -> [("proximity", Just . BC.pack $ show lon ++ "," ++ show lat)]) <$> mloc
 
 newtype Output = Output [Location]
     deriving Show
@@ -81,7 +83,7 @@ instance FromJSON Output where
             g <- r .: "geometry"
             case (gtype g, coords g) of
                 ("Point", [x, y]) -> pure . Just $ Location (x, y)
-                                                            (maybe "" (\ad' -> ad' ++ " ") ad ++ str)
+                                                            (maybe "" (++ " ") ad ++ str)
                                                             (fromMaybe "" ct)
                                                             (fromMaybe "" st)
                                                             (fromMaybe "" zc)
