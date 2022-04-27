@@ -31,6 +31,21 @@ geocode addr token perm mloc = do
         ] <> fold prox
     prox = (\(lon, lat) -> [("proximity", Just . BC.pack $ show lon ++ "," ++ show lat)]) <$> mloc
 
+reverseGeocode :: String -> String -> (Double, Double) -> IO (Maybe [Location])
+reverseGeocode token perm (lon, lat) = do
+    req <- parseRequest $ "https://api.mapbox.com/geocoding/v5/mapbox.places"
+                       <> bool "" "-permanent" perm <> "/" <> lon <> "," <> lat <> ".json"
+    rsp <- httpLBS . setRequestHeaders
+                 [ ("Accept", "applciation/vnd.geo+json")
+                 ] $ setRequestQueryString qstr req
+    pure . fold $ fmap (\(Output o) -> o) <$> decode (responseBody rsp)
+  where
+    qstr =
+        [ ("access_token", Just $ BC.pack token)
+        , ("country", Just "US")
+        , ("types", Just "address")
+        ]
+
 newtype Output = Output [Location]
     deriving Show
 
