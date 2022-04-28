@@ -16,11 +16,11 @@ import Network.HTTP.Client (responseBody)
 import Network.HTTP.Simple (httpLBS, parseRequest, setRequestHeaders, setRequestQueryString)
 
 geocode :: String -> String -> Bool -> Maybe (Double, Double) -> IO (Maybe [Location])
-geocode addr token perm mloc = do
+geocode token addr perm mloc = do
     req <- parseRequest $ "https://api.mapbox.com/geocoding/v5/mapbox.places"
                        <> bool "" "-permanent" perm <> "/" <> addr <> ".json"
     rsp <- httpLBS . setRequestHeaders
-                  [ ("Accept", "applciation/vnd.geo+json")
+                  [ ("Accept", "application/vnd.geo+json")
                   ] $ setRequestQueryString qstr req
     pure . fold $ fmap (\(Output o) -> o) <$> decode (responseBody rsp)
   where
@@ -37,7 +37,7 @@ reverseGeocode token lon lat perm = do
                        <> bool "" "-permanent" perm <> "/" <> show lon
                        <> "," <> show lat <> ".json"
     rsp <- httpLBS . setRequestHeaders
-                  [ ("Accept", "applciation/vnd.geo+json")
+                  [ ("Accept", "application/vnd.geo+json")
                   ] $ setRequestQueryString qstr req
     pure . fold $ fmap (\(Output o) -> o) <$> decode (responseBody rsp)
   where
