@@ -1,6 +1,6 @@
 {-# LANGUAGE DataKinds, FlexibleInstances, MultiParamTypeClasses, OverloadedStrings #-}
 
-module Geocode.Mapbox (Location(..), geocode) where
+module Geocode.Mapbox (Location(..), geocode, reverseGeocode) where
 
 import Prelude hiding (id, zip)
 
@@ -30,6 +30,21 @@ geocode addr token perm mloc = do
         , ("types", Just "address")
         ] <> fold prox
     prox = (\(lon, lat) -> [("proximity", Just . BC.pack $ show lon ++ "," ++ show lat)]) <$> mloc
+
+reverseGeocode :: String -> Double -> Double -> Bool -> IO (Maybe [Location])
+reverseGeocode token lon lat perm = do
+    req <- parseRequest $ "https://api.mapbox.com/geocoding/v5/mapbox.places"
+                       <> bool "" "-permanent" perm <> "/" <> show lon
+                       <> "," <> show lat <> ".json"
+    rsp <- httpLBS . setRequestHeaders
+                  [ ("Accept", "applciation/vnd.geo+json")
+                  ] $ setRequestQueryString qstr req
+    pure . fold $ fmap (\(Output o) -> o) <$> decode (responseBody rsp)
+  where
+    qstr =
+        [ ("access_token", Just $ BC.pack token)
+        , ("country", Just "US")
+        ]
 
 newtype Output = Output [Location]
     deriving Show
