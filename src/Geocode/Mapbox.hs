@@ -14,11 +14,14 @@ import Data.Maybe (catMaybes, fromMaybe)
 import Data.Traversable (for)
 import Network.HTTP.Client (responseBody)
 import Network.HTTP.Simple (httpLBS, parseRequest, setRequestHeaders, setRequestQueryString)
+import Network.URI (escapeURIString, isUnescapedInURIComponent)
 
 geocode :: String -> String -> Bool -> Maybe (Double, Double) -> IO (Maybe [Location])
 geocode token addr perm mloc = do
     req <- parseRequest $ "https://api.mapbox.com/geocoding/v5/mapbox.places"
-                       <> bool "" "-permanent" perm <> "/" <> addr <> ".json"
+                       <> bool "" "-permanent" perm <> "/" 
+                       <> escapeURIString isUnescapedInURIComponent addr
+                       <> ".json"
     rsp <- httpLBS . setRequestHeaders
                   [ ("Accept", "application/vnd.geo+json")
                   ] $ setRequestQueryString qstr req
