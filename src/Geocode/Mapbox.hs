@@ -47,6 +47,7 @@ reverseGeocode token lon lat perm = do
     qstr =
         [ ("access_token", Just $ BC.pack token)
         , ("country", Just "US")
+        , ("types", Just "address")
         ]
 
 newtype Output = Output [Location]
